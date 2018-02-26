@@ -28,8 +28,14 @@
 double pid(double Kp, double Ki, double Kd, double dt, double setpoint, double measured_value)
 {
 	double error, derivative, command;
-	static double integral = 0.0, previous_error = 0.0;
+	static double integral = 0.0, previous_error = 0.0, previous_setpoint = 0;
 	
+	if(previous_setpoint != setpoint)
+	{	
+		integral = 0.0;
+		previous_error = 0.0;
+		previous_setpoint = setpoint;	
+	}	
 	error = setpoint - measured_value;
   	integral = integral + error*dt;
   	derivative = (error - previous_error)/dt;

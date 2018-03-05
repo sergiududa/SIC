@@ -1,18 +1,28 @@
+
+/************* INDICATII *************
+
+	-Procesul are histerezis
+	-Mentinem bila intr-un anumit interval pe gradatie,
+	ca sa nu avem probleme cu momentul de intertie initial.
+	
+
+*************************************/ 
+
 #include <ansi_c.h>
 #include <cvirte.h>
 #include <userint.h>
 #include <NIDAQmx.h>
 #include <DAQmxIOctrl.h>
 #include "VoltUpdate.h"
-
+#include "control.h"
 
 // ***** DEFINE REGION *****
 #define DAQmxErrChk(functionCall) if( DAQmxFailed(error=(functionCall)) ) goto Error; else
-#define MANUAL_CONTROL    0
-#define AUTOMATIC_CONTROL 1
-#define PROCESS_STOPPED   0
-#define PROCESS_STARTED   1
-#define NUM_CHANNELS      3
+#define MANUAL_CONTROL      0
+#define AUTOMATIC_CONTROL   1
+#define PROCESS_STOPPED     0
+#define PROCESS_STARTED     1
+#define NUM_GRAPH_CHANNELS  3
 // ***** END REGION *****
 
 
@@ -25,8 +35,9 @@ double Ti = 0;
 double Td = 0;
 double T  = 0.1; // The sampling rate
 int process_running = PROCESS_STOPPED;
+int32       numRead;
+uInt32      numChannels;
 // ***** END REGION *****
-	
 
 int main(int argc, char *argv[])
 {
@@ -112,46 +123,31 @@ int CVICALLBACK tipControl (int panel, int control, int event,
 	return 0;
 }
 
-/**************************************************
- * This callback handles the speed of motor nr
- * zero. The voltage applied is set whith a slider. 
- **************************************************/
-int CVICALLBACK MotorZeroCallback (int panel, int control, int event,
-		void *callbackData, int eventData1, int eventData2)
+int SetMotorCommand(char chan[256], float64 command)
 {
 	int         error=0;
 	TaskHandle  taskHandle=0;
-	// MOTOR 0
-	char        chan[256] = "Dev1/ao0";
 	double      min = 0, max = 5;
-	float64     data;
 	char        errBuff[2048]={'\0'};
 	
-	switch (event)
-	{
-		case EVENT_COMMIT:
-			// Retrieve voltage value from the slider
-			GetCtrlVal(panel,PANEL_MOTOR_ZERO_SLIDER,&data);
 
-			/*********************************************/
-			// DAQmx Configure Code
-			/*********************************************/
-			SetWaitCursor(1);
-			DAQmxErrChk (DAQmxCreateTask("",&taskHandle));
-			DAQmxErrChk (DAQmxCreateAOVoltageChan(taskHandle,chan,"",min,max,DAQmx_Val_Volts,""));
-   
-			/*********************************************/
-			// DAQmx Start Code
-			/*********************************************/
-			DAQmxErrChk (DAQmxStartTask(taskHandle));
+	/*********************************************/
+	// DAQmx Configure Code
+	/*********************************************/
+	SetWaitCursor(1);
+	DAQmxErrChk (DAQmxCreateTask("",&taskHandle));
+	DAQmxErrChk (DAQmxCreateAOVoltageChan(taskHandle,chan,"",min,max,DAQmx_Val_Volts,""));
 
-			/*********************************************/
-			// DAQmx Write Code
-			/*********************************************/
-			DAQmxErrChk (DAQmxWriteAnalogF64(taskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,&data,NULL,NULL));
+	/*********************************************/
+	// DAQmx Start Code
+	/*********************************************/
+	DAQmxErrChk (DAQmxStartTask(taskHandle));
 
-		break;
-	}
+	/*********************************************/
+	// DAQmx Write Code
+	/*********************************************/
+	DAQmxErrChk (DAQmxWriteAnalogF64(taskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,&command,NULL,NULL));
+
 Error:
 	SetWaitCursor(0);
 	if( DAQmxFailed(error) )
@@ -165,6 +161,29 @@ Error:
 	}
 	if( DAQmxFailed(error) )
 		MessagePopup("DAQmx Error",errBuff);
+	
+	return 0;
+}
+
+/**************************************************
+ * This callback handles the speed of motor nr
+ * zero. The voltage applied is set whith a slider. 
+ **************************************************/
+int CVICALLBACK MotorZeroCallback (int panel, int control, int event,
+		void *callbackData, int eventData1, int eventData2)
+{
+	// MOTOR 0
+	char        chan[256] = "Dev1/ao0";
+	float64     data;
+	
+	switch (event)
+	{
+		case EVENT_COMMIT:
+			// Retrieve voltage value from the slider
+			GetCtrlVal(panel,PANEL_MOTOR_ZERO_SLIDER,&data);
+			SetMotorCommand(chan, data); 
+		break;
+	}
 	return 0;
 }
 
@@ -175,52 +194,18 @@ Error:
 int CVICALLBACK MotorOneCallback (int panel, int control, int event,
 		void *callbackData, int eventData1, int eventData2)
 {
-	int         error=0;
-	TaskHandle  taskHandle=0;
 	// MOTOR 1
 	char        chan[256] = "Dev1/ao1";
-	double      min = 0, max = 5;
 	float64     data;
-	char        errBuff[2048]={'\0'};
 	
 	switch (event)
 	{
 		case EVENT_COMMIT:
 			// Retrieve voltage value from the slider  
 			GetCtrlVal(panel,PANEL_MOTOR_ONE_SLIDER,&data);
-
-			/*********************************************/
-			// DAQmx Configure Code
-			/*********************************************/
-			SetWaitCursor(1);
-			DAQmxErrChk (DAQmxCreateTask("",&taskHandle));
-			DAQmxErrChk (DAQmxCreateAOVoltageChan(taskHandle,chan,"",min,max,DAQmx_Val_Volts,""));
-   
-			/*********************************************/
-			// DAQmx Start Code
-			/*********************************************/
-			DAQmxErrChk (DAQmxStartTask(taskHandle));
-
-			/*********************************************/
-			// DAQmx Write Code
-			/*********************************************/
-			DAQmxErrChk (DAQmxWriteAnalogF64(taskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,&data,NULL,NULL));
-				
+			SetMotorCommand(chan, data); 
 		break;
 	}
-Error:
-	SetWaitCursor(0);
-	if( DAQmxFailed(error) )
-		DAQmxGetExtendedErrorInfo(errBuff,2048);
-	if( taskHandle!=0 ) {
-		/*********************************************/
-		// DAQmx Stop Code
-		/*********************************************/
-		DAQmxStopTask(taskHandle);
-		DAQmxClearTask(taskHandle);
-	}
-	if( DAQmxFailed(error) )
-		MessagePopup("DAQmx Error",errBuff);
 	return 0;
 }
 
@@ -250,6 +235,7 @@ int CVICALLBACK StartCallback (int panel, int control, int event,
 			SetCtrlAttribute(panelHandle, PANEL_control_type_select, ATTR_DIMMED, 1); 
 			
 			process_running = PROCESS_STARTED;
+			
 		break;
 	}
 	return 0;
@@ -285,23 +271,84 @@ int CVICALLBACK StopCallback (int panel, int control, int event,
 int CVICALLBACK TimerCallback (int panel, int control, int event,
 		void *callbackData, int eventData1, int eventData2)
 {
+	
+	int32       error=0;
+	// Analog input channel
+	char        chan[256] = "Dev1/ai0";
+	float64     min = -10, max = 20;
+	uInt32      numChannels = 1;   
+	TaskHandle  taskHandle=0;  
+	uInt32      sampsPerChan = 1;
+	char        errBuff[2048]={'\0'};
+	float64     *sensor_data=NULL; 
+	double      command = 0;
+	// MOTOR 0
+	char        chan_0[256] = "Dev1/ao0";
+	// MOTOR 1
+	char        chan_1[256] = "Dev1/ao1";
+	
+	
 	switch (event)
 	{
 		case EVENT_TIMER_TICK:
+			
+			// Analog voltage input handling
+			
+			/*********************************************/
+			// DAQmx Configure Code
+			/*********************************************/
+			DAQmxErrChk (DAQmxCreateTask("",&taskHandle));
+			DAQmxErrChk (DAQmxCreateAIVoltageChan(taskHandle,chan,"",DAQmx_Val_Cfg_Default,min,max,DAQmx_Val_Volts,NULL));
+			DAQmxErrChk (DAQmxGetTaskAttribute(taskHandle,DAQmx_Task_NumChans,&numChannels));
+		
+			if( (sensor_data=malloc(sampsPerChan*numChannels*sizeof(float64)))==NULL ) {
+				MessagePopup("Error","Not enough memory");
+				goto Error;
+			}
+			/*********************************************/
+			// DAQmx Start Code
+			/*********************************************/
+			DAQmxErrChk (DAQmxStartTask(taskHandle));
+
+			/*********************************************/
+			// DAQmx Read Code
+			/*********************************************/
+			DAQmxErrChk (DAQmxReadAnalogF64(taskHandle,-1,10.0,DAQmx_Val_GroupByChannel,sensor_data,sampsPerChan*numChannels,&numRead,NULL));
+		
+			PlotStripChart(panelHandle,PANEL_STRIPCHART,sensor_data,numRead*numChannels,0,0,VAL_DOUBLE); 
+			
+			//command = pid(10, 0, 0, T, -0.4, *sensor_data, 0, 5);
+			//printf("\nSensor data = %f, command = %f", *sensor_data, command);
+			
+			// Starting point : -0.89
+			// Ending point   :  0.00
+			
 			if(process_running)
 			{
-				// FOR DEBUGGING PURPOSES
-				double data[] = {3, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 10, 6 ,4, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 5, 6 ,4, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 5, 6 ,4, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 5, 6 ,4, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 5, 6 ,4, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 5, 6 ,4, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 5, 6 ,4, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 5, 6 ,4, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 5, 6 ,4, 3, 3, 4, 5, 6 ,4, 3, 3, 3, 4, 5, 6 ,4};
-				
-				int i = 0;
-				for(i = 0; i< 10; i++)
-					PlotY(panelHandle,PANEL_GRAPH,data,5,VAL_DOUBLE,VAL_THIN_LINE,VAL_EMPTY_SQUARE,VAL_SOLID,1,VAL_RED);
-				// ==================
-				
+				command = 1.3;
+				SetMotorCommand(chan_0, command);
+				SetMotorCommand(chan_1, command);
 				// Here goes PID control logic	
 			}
 		break;
 	}
+	
+Error:
+	SetWaitCursor(0);
+	if( DAQmxFailed(error) )
+		DAQmxGetExtendedErrorInfo(errBuff,2048);
+	if( taskHandle!=0 ) {
+		/*********************************************/
+		// DAQmx Stop Code
+		/*********************************************/
+		DAQmxStopTask(taskHandle);
+		DAQmxClearTask(taskHandle);
+	}
+	if( sensor_data )
+		free(sensor_data);
+	if( DAQmxFailed(error) )
+		MessagePopup("DAQmx Error",errBuff);
+	
 	return 0;
 }
 

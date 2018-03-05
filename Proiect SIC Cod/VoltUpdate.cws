@@ -28,7 +28,7 @@ Hide Windows = False
 Global Hot Key = False
 Break At First Statement = False
 Sort Type = "File Name"
-Number of Opened Files = 2
+Number of Opened Files = 3
 Window Confinement Region Enabled = True
 MainColumnWidth = 211
 FileDateColumnWidth = 70
@@ -54,23 +54,33 @@ In Projects = "1,"
 [File 0002]
 Path = "/e/Facultate/Anul 4/SEM 2/SIC/Proiect/Proiect SIC Cod/VoltUpdate.c"
 File Type = "CSource"
-Disk Date = 3602785246
+Disk Date = 3603088150
 In Projects = "1,"
 Window Top = 33
 Window Left = 10
-Window Z-Order = 2
-Source Window State = "1,123,123,123,4,16,16,0,0,77,0,6,0,1,0,26,6,0,179,14,401,606,1,16,"
+Window Z-Order = 1
+Source Window State = "1,327,327,327,18,19,18,0,0,152,0,16,0,11,0,43,296,0,311,66,401,606,1,16,"
 
 [File 0003]
 Path = "/e/Facultate/Anul 4/SEM 2/SIC/Proiect/Proiect SIC Cod/VoltUpdate.uir"
 File Type = "User Interface Resource"
-Disk Date = 3602785040
+Disk Date = 3603087367
 In Projects = "1,"
 Window Top = 64
 Window Left = 26
 Window Height = 375
 Window Width = 633
-Window Z-Order = 1
+Window Z-Order = 2
+
+[File 0004]
+Path = "/e/Facultate/Anul 4/SEM 2/SIC/Proiect/Proiect SIC Cod/control.h"
+File Type = "Include"
+Disk Date = 3603087222
+In Projects = ""
+Window Top = 157
+Window Left = 74
+Window Z-Order = 3
+Source Window State = "1,38,38,38,12,20,20,0,0,80,0,0,0,0,0,25,20,0,47,22,375,633,1,0,"
 
 [Build Options 0001]
 Generate Browse Info = True

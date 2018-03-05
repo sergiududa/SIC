@@ -21,17 +21,17 @@
 #define  PANEL_TI_VALUE                   5
 #define  PANEL_KR_VALUE                   6
 #define  PANEL_MOTOR_ONE_SLIDER           7       /* callback function: MotorOneCallback */
-#define  PANEL_GRAPH                      8
-#define  PANEL_MOTOR_ZERO_SLIDER          9       /* callback function: MotorZeroCallback */
-#define  PANEL_control_type_select        10      /* callback function: tipControl */
-#define  PANEL_DECORATION                 11
-#define  PANEL_DECORATION_2               12
-#define  PANEL_LED_AUTOMATIC              13
-#define  PANEL_LED_MANUAL                 14
-#define  PANEL_DECORATION_3               15
-#define  PANEL_PERIOD                     16
-#define  PANEL_SET_POINT_VALUE            17
-#define  PANEL_TIMER                      18      /* callback function: TimerCallback */
+#define  PANEL_MOTOR_ZERO_SLIDER          8       /* callback function: MotorZeroCallback */
+#define  PANEL_control_type_select        9       /* callback function: tipControl */
+#define  PANEL_DECORATION                 10
+#define  PANEL_DECORATION_2               11
+#define  PANEL_LED_AUTOMATIC              12
+#define  PANEL_LED_MANUAL                 13
+#define  PANEL_DECORATION_3               14
+#define  PANEL_PERIOD                     15
+#define  PANEL_SET_POINT_VALUE            16
+#define  PANEL_TIMER                      17      /* callback function: TimerCallback */
+#define  PANEL_STRIPCHART                 18
 
 #define  PANEL_2                          2
 

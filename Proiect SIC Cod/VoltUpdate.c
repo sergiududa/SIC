@@ -1,11 +1,14 @@
 
-/************* INDICATII *************
+/************* INDICATII/IDEI *************
 
-	-Procesul are histerezis
-	-Mentinem bila intr-un anumit interval pe gradatie,
-	ca sa nu avem probleme cu momentul de intertie initial.
+	- Procesul are histerezis.
+	- Mentinem bila intr-un anumit interval pe gradatie, ca sa nu avem probleme cu momentul de intertie initial.
+	- Starting point : -0.89
+	- Ending point   :  0.00
+	- Adaugare legenda
+	- Scalare setpoint
+	- Acordare PID + pozitia initiala
 	
-
 *************************************/ 
 
 #include <ansi_c.h>
@@ -27,17 +30,24 @@
 
 
 // ***** VARIABLE DECLARATIONS REGION *****
-static int panelHandle;
-int control_type = MANUAL_CONTROL; // Control type is manual by default
-unsigned short setpoint = 0;
-double Kr = 0;
-double Ti = 0;
-double Td = 0;
-double T  = 0.1; // The sampling rate
-int process_running = PROCESS_STOPPED;
-int32       numRead;
-uInt32      numChannels;
+static int     panelHandle;
+int            control_type = MANUAL_CONTROL; // Control type is manual by default
+char           CHAN_0[256] = "Dev1/ao0";      // MOTOR 0
+char           CHAN_1[256] = "Dev1/ao1";      // MOTOR 1 
+char           CHAN_I[256] = "Dev1/ai0";	  // Analog input channel  
+double         setpoint = 0;
+double         Kr = 0;
+double         Ti = 0;
+double         Td = 0;
+double         T  = 0.1;                      // The sampling rate
+int            process_running = PROCESS_STOPPED;
+int32          numRead;
+float64        sensor_data = 0; 
 // ***** END REGION *****
+
+// ***** PROTOTYPES REGION *****  
+int SetMotorCommand(char chan[256], float64 command);
+// ***** END REGION ***** 
 
 int main(int argc, char *argv[])
 {
@@ -54,10 +64,13 @@ int main(int argc, char *argv[])
 	// Set default led active
 	SetCtrlAttribute(panelHandle,PANEL_LED_MANUAL, ATTR_CTRL_VAL, 1);
 	
+	// Set number of displayed traces
+	SetCtrlAttribute(panelHandle,PANEL_STRIPCHART, ATTR_NUM_TRACES, NUM_GRAPH_CHANNELS);
+	
 	// Disable automatic controls
 	SetCtrlAttribute(panelHandle, PANEL_START, ATTR_DIMMED, 1);
 	SetCtrlAttribute(panelHandle, PANEL_STOP, ATTR_DIMMED, 1);
-	
+
 	//NIDAQmx_NewPhysChanAOCtrl(panelHandle,PANEL_CHANNEL  ,0);  // Adauga canalele de iesire in dropdown
 	//NIDAQmx_NewPhysChanAICtrl(panelHandle,PANEL_CHANNEL_2,1);  // Adauga canalele de intrare in dropdown  
 	
@@ -70,7 +83,13 @@ int main(int argc, char *argv[])
 int CVICALLBACK PanelCallback(int panel, int event, void *callbackData, int eventData1, int eventData2)
 {
 	if( event==EVENT_CLOSE )
+	{
+		// Stop both motors when the application is closed
+		SetMotorCommand(CHAN_0, 0);
+		SetMotorCommand(CHAN_1, 0);
+				
 		QuitUserInterface(0);
+	}
 	return 0;
 }
 
@@ -96,10 +115,15 @@ int CVICALLBACK tipControl (int panel, int control, int event,
 				// Disable manual controls
 				SetCtrlAttribute(panelHandle, PANEL_MOTOR_ZERO_SLIDER, ATTR_DIMMED, 1);
 				SetCtrlAttribute(panelHandle, PANEL_MOTOR_ONE_SLIDER, ATTR_DIMMED, 1);
+				SetCtrlAttribute(panelHandle, PANEL_SAME_COMMAND_CHBX, ATTR_DIMMED, 1);
 				
 				// Configure automatic controls
 				SetCtrlAttribute(panelHandle, PANEL_START, ATTR_DIMMED, 0);
 				SetCtrlAttribute(panelHandle, PANEL_STOP, ATTR_DIMMED, 1);
+				
+				// Reset both motors when switching to automatic control
+				SetMotorCommand(CHAN_0, 0);
+				SetMotorCommand(CHAN_1, 0);
 			}
 			else
 			{
@@ -113,10 +137,15 @@ int CVICALLBACK tipControl (int panel, int control, int event,
 				// Enable manual controls 
 				SetCtrlAttribute(panelHandle, PANEL_MOTOR_ZERO_SLIDER, ATTR_DIMMED, 0);
 				SetCtrlAttribute(panelHandle, PANEL_MOTOR_ONE_SLIDER, ATTR_DIMMED, 0);
+				SetCtrlAttribute(panelHandle, PANEL_SAME_COMMAND_CHBX, ATTR_DIMMED, 0); 
 				
 				// Disable automatic controls
 				SetCtrlAttribute(panelHandle, PANEL_START, ATTR_DIMMED, 1);
 				SetCtrlAttribute(panelHandle, PANEL_STOP, ATTR_DIMMED, 1);
+				
+				// Reset both motors when switching to manual control
+				SetMotorCommand(CHAN_0, 0);
+				SetMotorCommand(CHAN_1, 0);
 			}
 		break;
 	}
@@ -130,22 +159,15 @@ int SetMotorCommand(char chan[256], float64 command)
 	double      min = 0, max = 5;
 	char        errBuff[2048]={'\0'};
 	
-
-	/*********************************************/
 	// DAQmx Configure Code
-	/*********************************************/
 	SetWaitCursor(1);
 	DAQmxErrChk (DAQmxCreateTask("",&taskHandle));
 	DAQmxErrChk (DAQmxCreateAOVoltageChan(taskHandle,chan,"",min,max,DAQmx_Val_Volts,""));
 
-	/*********************************************/
 	// DAQmx Start Code
-	/*********************************************/
 	DAQmxErrChk (DAQmxStartTask(taskHandle));
 
-	/*********************************************/
 	// DAQmx Write Code
-	/*********************************************/
 	DAQmxErrChk (DAQmxWriteAnalogF64(taskHandle,1,1,10.0,DAQmx_Val_GroupByChannel,&command,NULL,NULL));
 
 Error:
@@ -153,9 +175,7 @@ Error:
 	if( DAQmxFailed(error) )
 		DAQmxGetExtendedErrorInfo(errBuff,2048);
 	if( taskHandle!=0 ) {
-		/*********************************************/
 		// DAQmx Stop Code
-		/*********************************************/
 		DAQmxStopTask(taskHandle);
 		DAQmxClearTask(taskHandle);
 	}
@@ -172,16 +192,23 @@ Error:
 int CVICALLBACK MotorZeroCallback (int panel, int control, int event,
 		void *callbackData, int eventData1, int eventData2)
 {
-	// MOTOR 0
-	char        chan[256] = "Dev1/ao0";
-	float64     data;
+	float64 data;
+	int     sameCommand = 0;
 	
 	switch (event)
 	{
 		case EVENT_COMMIT:
 			// Retrieve voltage value from the slider
-			GetCtrlVal(panel,PANEL_MOTOR_ZERO_SLIDER,&data);
-			SetMotorCommand(chan, data); 
+			GetCtrlVal(panel, PANEL_MOTOR_ZERO_SLIDER, &data);
+			GetCtrlVal(panel, PANEL_SAME_COMMAND_CHBX, &sameCommand);
+			 
+			if(sameCommand == 1)
+			{
+				SetCtrlAttribute(panelHandle, PANEL_MOTOR_ONE_SLIDER, ATTR_CTRL_VAL, data);
+				SetMotorCommand(CHAN_1, data); 	
+			}
+			
+			SetMotorCommand(CHAN_0, data);
 		break;
 	}
 	return 0;
@@ -194,16 +221,23 @@ int CVICALLBACK MotorZeroCallback (int panel, int control, int event,
 int CVICALLBACK MotorOneCallback (int panel, int control, int event,
 		void *callbackData, int eventData1, int eventData2)
 {
-	// MOTOR 1
-	char        chan[256] = "Dev1/ao1";
-	float64     data;
+	float64 data;
+	int     sameCommand = 0;
 	
 	switch (event)
 	{
 		case EVENT_COMMIT:
 			// Retrieve voltage value from the slider  
-			GetCtrlVal(panel,PANEL_MOTOR_ONE_SLIDER,&data);
-			SetMotorCommand(chan, data); 
+			GetCtrlVal(panel, PANEL_MOTOR_ONE_SLIDER, &data);
+			GetCtrlVal(panel, PANEL_SAME_COMMAND_CHBX, &sameCommand); 
+			
+			if(sameCommand == 1)
+			{
+				SetCtrlAttribute(panelHandle, PANEL_MOTOR_ZERO_SLIDER, ATTR_CTRL_VAL, data);
+				SetMotorCommand(CHAN_0, data); 	
+			}
+			
+			SetMotorCommand(CHAN_1, data);  
 		break;
 	}
 	return 0;
@@ -257,6 +291,10 @@ int CVICALLBACK StopCallback (int panel, int control, int event,
 			// Enable control type button
 			SetCtrlAttribute(panelHandle, PANEL_control_type_select, ATTR_DIMMED, 0); 
 			
+			// Reset both motors when switching to automatic control
+			SetMotorCommand(CHAN_0, 0);
+			SetMotorCommand(CHAN_1, 0);
+		
 			process_running = PROCESS_STOPPED; 
 		break;
 	}
@@ -271,86 +309,92 @@ int CVICALLBACK StopCallback (int panel, int control, int event,
 int CVICALLBACK TimerCallback (int panel, int control, int event,
 		void *callbackData, int eventData1, int eventData2)
 {
-	
 	int32       error=0;
-	// Analog input channel
-	char        chan[256] = "Dev1/ai0";
-	float64     min = -10, max = 20;
+	float64     min = 0, max = 5;
 	uInt32      numChannels = 1;   
 	TaskHandle  taskHandle=0;  
 	uInt32      sampsPerChan = 1;
 	char        errBuff[2048]={'\0'};
-	float64     *sensor_data=NULL; 
+	float64     plotData[NUM_GRAPH_CHANNELS];
 	double      command = 0;
-	// MOTOR 0
-	char        chan_0[256] = "Dev1/ao0";
-	// MOTOR 1
-	char        chan_1[256] = "Dev1/ao1";
-	
-	
+
 	switch (event)
 	{
 		case EVENT_TIMER_TICK:
-			
+
 			// Analog voltage input handling
 			
-			/*********************************************/
 			// DAQmx Configure Code
-			/*********************************************/
 			DAQmxErrChk (DAQmxCreateTask("",&taskHandle));
-			DAQmxErrChk (DAQmxCreateAIVoltageChan(taskHandle,chan,"",DAQmx_Val_Cfg_Default,min,max,DAQmx_Val_Volts,NULL));
-			DAQmxErrChk (DAQmxGetTaskAttribute(taskHandle,DAQmx_Task_NumChans,&numChannels));
+			DAQmxErrChk (DAQmxCreateAIVoltageChan(taskHandle,CHAN_I,"",DAQmx_Val_Cfg_Default,min,max,DAQmx_Val_Volts,NULL));
+			//DAQmxErrChk (DAQmxGetTaskAttribute(taskHandle,DAQmx_Task_NumChans,&numChannels));
 		
-			if( (sensor_data=malloc(sampsPerChan*numChannels*sizeof(float64)))==NULL ) {
-				MessagePopup("Error","Not enough memory");
-				goto Error;
-			}
-			/*********************************************/
 			// DAQmx Start Code
-			/*********************************************/
 			DAQmxErrChk (DAQmxStartTask(taskHandle));
 
-			/*********************************************/
 			// DAQmx Read Code
-			/*********************************************/
-			DAQmxErrChk (DAQmxReadAnalogF64(taskHandle,-1,10.0,DAQmx_Val_GroupByChannel,sensor_data,sampsPerChan*numChannels,&numRead,NULL));
-		
-			PlotStripChart(panelHandle,PANEL_STRIPCHART,sensor_data,numRead*numChannels,0,0,VAL_DOUBLE); 
-			
-			//command = pid(10, 0, 0, T, -0.4, *sensor_data, 0, 5);
-			//printf("\nSensor data = %f, command = %f", *sensor_data, command);
-			
-			// Starting point : -0.89
-			// Ending point   :  0.00
+			DAQmxErrChk (DAQmxReadAnalogF64(taskHandle,-1,10.0,DAQmx_Val_GroupByChannel,&sensor_data,sampsPerChan*numChannels,&numRead,NULL));
 			
 			if(process_running)
 			{
-				command = 1.3;
-				SetMotorCommand(chan_0, command);
-				SetMotorCommand(chan_1, command);
-				// Here goes PID control logic	
+				// Here goes PID control logic
+				
+				command = pid_incremental(Kr, Ti, Td, T, setpoint, sensor_data, 1, 1.7); 
+				//printf("\nSensor data = %f, command = %f", sensor_data, command); 
+				SetMotorCommand(CHAN_0, command);
+				SetMotorCommand(CHAN_1, command);
 			}
+			
+			plotData[0] = sensor_data;
+		    plotData[1] = command;
+		    plotData[2] = setpoint;
+			PlotStripChart(panelHandle,PANEL_STRIPCHART,plotData,numRead*NUM_GRAPH_CHANNELS,0,0,VAL_DOUBLE); 
 		break;
 	}
 	
+
 Error:
-	SetWaitCursor(0);
+#if 1
+	//SetWaitCursor(0);
 	if( DAQmxFailed(error) )
 		DAQmxGetExtendedErrorInfo(errBuff,2048);
 	if( taskHandle!=0 ) {
-		/*********************************************/
 		// DAQmx Stop Code
-		/*********************************************/
 		DAQmxStopTask(taskHandle);
 		DAQmxClearTask(taskHandle);
 	}
-	if( sensor_data )
-		free(sensor_data);
 	if( DAQmxFailed(error) )
 		MessagePopup("DAQmx Error",errBuff);
+#endif
 	
 	return 0;
 }
 
 
-
+/*****************************************************
+ * This callback handles the same command checkbox.
+ * When the chkbox is checked, both motor commands are
+ * set to zero.
+ ****************************************************/
+int CVICALLBACK SameCommandCHECKED (int panel, int control, int event,
+		void *callbackData, int eventData1, int eventData2)
+{
+	int sameCommand = 0;
+	
+	switch (event)
+	{
+		case EVENT_COMMIT:
+			GetCtrlVal(panel, PANEL_SAME_COMMAND_CHBX, &sameCommand);
+			
+			// When checkbox is checked, reset all motors to zero and update sliders accordingly
+			if(sameCommand == 1)
+			{
+				SetCtrlAttribute(panelHandle, PANEL_MOTOR_ZERO_SLIDER, ATTR_CTRL_VAL, 0.0);  
+				SetCtrlAttribute(panelHandle, PANEL_MOTOR_ONE_SLIDER, ATTR_CTRL_VAL, 0.0);
+				SetMotorCommand(CHAN_1, 0);
+				SetMotorCommand(CHAN_0, 0);  
+			}
+		break;
+	}
+	return 0;
+}

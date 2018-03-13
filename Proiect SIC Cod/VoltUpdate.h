@@ -31,7 +31,8 @@
 #define  PANEL_PERIOD                     15
 #define  PANEL_SET_POINT_VALUE            16
 #define  PANEL_TIMER                      17      /* callback function: TimerCallback */
-#define  PANEL_STRIPCHART                 18
+#define  PANEL_SAME_COMMAND_CHBX          18      /* callback function: SameCommandCHECKED */
+#define  PANEL_STRIPCHART                 19
 
 #define  PANEL_2                          2
 
@@ -46,6 +47,7 @@
 int  CVICALLBACK MotorOneCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK MotorZeroCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK PanelCallback(int panel, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK SameCommandCHECKED(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK StartCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK StopCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK TimerCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);

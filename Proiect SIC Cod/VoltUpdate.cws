@@ -10,11 +10,11 @@ VXIplug&play Framework Dir = "/c/vxipnp/winnt"
 Number of Projects = 1
 Active Project = 1
 Project 0001 = "VoltUpdate.prj"
-Drag Bar Left = 230
+Drag Bar Left = 227
 Window Top = 31
-Window Left = 394
+Window Left = 1276
 Window Bottom = 533
-Window Right = 1184
+Window Right = 2066
 Maximized = True
 Maximized Children = True
 Max Number Of Errors = 20
@@ -30,7 +30,7 @@ Break At First Statement = False
 Sort Type = "File Name"
 Number of Opened Files = 3
 Window Confinement Region Enabled = True
-MainColumnWidth = 211
+MainColumnWidth = 208
 FileDateColumnWidth = 70
 FileSizeColumnWidth = 70
 StatusColumnWidth = 70
@@ -54,17 +54,17 @@ In Projects = "1,"
 [File 0002]
 Path = "/e/Facultate/Anul 4/SEM 2/SIC/Proiect/Proiect SIC Cod/VoltUpdate.c"
 File Type = "CSource"
-Disk Date = 3603088150
+Disk Date = 3351231942
 In Projects = "1,"
 Window Top = 33
 Window Left = 10
 Window Z-Order = 1
-Source Window State = "1,327,327,327,18,19,18,0,0,152,0,16,0,11,0,43,296,0,311,66,401,606,1,16,"
+Source Window State = "1,329,329,329,79,90,90,1,0,153,0,99,0,14,0,34,336,0,364,66,401,606,1,0,"
 
 [File 0003]
 Path = "/e/Facultate/Anul 4/SEM 2/SIC/Proiect/Proiect SIC Cod/VoltUpdate.uir"
 File Type = "User Interface Resource"
-Disk Date = 3603087367
+Disk Date = 3603692183
 In Projects = "1,"
 Window Top = 64
 Window Left = 26
@@ -75,12 +75,12 @@ Window Z-Order = 2
 [File 0004]
 Path = "/e/Facultate/Anul 4/SEM 2/SIC/Proiect/Proiect SIC Cod/control.h"
 File Type = "Include"
-Disk Date = 3603087222
+Disk Date = 3603689728
 In Projects = ""
 Window Top = 157
 Window Left = 74
 Window Z-Order = 3
-Source Window State = "1,38,38,38,12,20,20,0,0,80,0,0,0,0,0,25,20,0,47,22,375,633,1,0,"
+Source Window State = "1,24,24,24,12,56,56,1,0,80,0,0,0,0,0,25,40,0,25,53,375,633,1,0,"
 
 [Build Options 0001]
 Generate Browse Info = True

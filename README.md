@@ -14,6 +14,7 @@ command = pid(Kp, Ki, Kd, dt, setpoint, measured_value) where,
 
 
 Referat SIC:
+
 	* prezentare motivatie
 	* prezentare componente (placa de achizitie, senzor, etc.) + mediu de dezvoltare (CVI)
 	* prezentare solutie automatizare

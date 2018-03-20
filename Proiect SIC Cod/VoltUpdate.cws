@@ -10,7 +10,7 @@ VXIplug&play Framework Dir = "/c/vxipnp/winnt"
 Number of Projects = 1
 Active Project = 1
 Project 0001 = "VoltUpdate.prj"
-Drag Bar Left = 227
+Drag Bar Left = 209
 Window Top = 31
 Window Left = 1276
 Window Bottom = 533
@@ -28,9 +28,9 @@ Hide Windows = False
 Global Hot Key = False
 Break At First Statement = False
 Sort Type = "File Name"
-Number of Opened Files = 3
+Number of Opened Files = 2
 Window Confinement Region Enabled = True
-MainColumnWidth = 208
+MainColumnWidth = 190
 FileDateColumnWidth = 70
 FileSizeColumnWidth = 70
 StatusColumnWidth = 70
@@ -54,33 +54,23 @@ In Projects = "1,"
 [File 0002]
 Path = "/e/Facultate/Anul 4/SEM 2/SIC/Proiect/Proiect SIC Cod/VoltUpdate.c"
 File Type = "CSource"
-Disk Date = 3351231942
+Disk Date = 3604297932
 In Projects = "1,"
 Window Top = 33
 Window Left = 10
 Window Z-Order = 1
-Source Window State = "1,329,329,329,79,90,90,1,0,153,0,99,0,14,0,34,336,0,364,66,401,606,1,0,"
+Source Window State = "1,442,442,442,58,69,69,1,0,155,0,321,0,9,0,43,167,0,342,70,401,606,1,16,"
 
 [File 0003]
 Path = "/e/Facultate/Anul 4/SEM 2/SIC/Proiect/Proiect SIC Cod/VoltUpdate.uir"
 File Type = "User Interface Resource"
-Disk Date = 3603692183
+Disk Date = 3604297384
 In Projects = "1,"
 Window Top = 64
 Window Left = 26
 Window Height = 375
 Window Width = 633
 Window Z-Order = 2
-
-[File 0004]
-Path = "/e/Facultate/Anul 4/SEM 2/SIC/Proiect/Proiect SIC Cod/control.h"
-File Type = "Include"
-Disk Date = 3603689728
-In Projects = ""
-Window Top = 157
-Window Left = 74
-Window Z-Order = 3
-Source Window State = "1,24,24,24,12,56,56,1,0,80,0,0,0,0,0,25,40,0,25,53,375,633,1,0,"
 
 [Build Options 0001]
 Generate Browse Info = True

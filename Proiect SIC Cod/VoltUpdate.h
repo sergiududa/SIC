@@ -29,10 +29,18 @@
 #define  PANEL_LED_MANUAL                 13
 #define  PANEL_DECORATION_3               14
 #define  PANEL_PERIOD                     15
-#define  PANEL_SET_POINT_VALUE            16
+#define  PANEL_SET_POINT_VALUE            16      /* callback function: ReferenceChanged */
 #define  PANEL_TIMER                      17      /* callback function: TimerCallback */
 #define  PANEL_SAME_COMMAND_CHBX          18      /* callback function: SameCommandCHECKED */
 #define  PANEL_STRIPCHART                 19
+#define  PANEL_TEXTMSG                    20
+#define  PANEL_TIMER_2                    21      /* callback function: UpdateLabelsTimer */
+#define  PANEL_REF_LABEL                  22
+#define  PANEL_COMMAND_LABEL              23
+#define  PANEL_OUTPUT_LABEL               24
+#define  PANEL_REF_VAL                    25
+#define  PANEL_U_VAL                      26
+#define  PANEL_Y_VAL                      27
 
 #define  PANEL_2                          2
 
@@ -47,11 +55,13 @@
 int  CVICALLBACK MotorOneCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK MotorZeroCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK PanelCallback(int panel, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK ReferenceChanged(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK SameCommandCHECKED(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK StartCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK StopCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK TimerCallback(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK tipControl(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
+int  CVICALLBACK UpdateLabelsTimer(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);
 
 
 #ifdef __cplusplus

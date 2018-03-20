@@ -1,13 +1,8 @@
 
-/************* INDICATII/IDEI *************
+/************* INFO *****************
 
-	- Procesul are histerezis.
-	- Mentinem bila intr-un anumit interval pe gradatie, ca sa nu avem probleme cu momentul de intertie initial.
-	- Starting point : -0.89
-	- Ending point   :  0.00
-	- Adaugare legenda
-	- Scalare setpoint
-	- Acordare PID + pozitia initiala
+	- Starting point : -0.9 (0%)
+	- Ending point   :  0.00 (100%)
 	
 *************************************/ 
 
@@ -26,23 +21,30 @@
 #define PROCESS_STOPPED     0
 #define PROCESS_STARTED     1
 #define NUM_GRAPH_CHANNELS  3
+#define MIN_SENSOR_VALUE    -0.9
+#define MAX_SENSOR_VALUE    0
+#define MIN_MOTOR_COMMAND   1.15
+#define MAX_MOTOR_COMMAND   1.4
+#define COMMAND_RANGE       5
 // ***** END REGION *****
 
-
-// ***** VARIABLE DECLARATIONS REGION *****
+// ***** VARIABLE DECLARATIONS REGION *****	   
+int i = 0;
 static int     panelHandle;
 int            control_type = MANUAL_CONTROL; // Control type is manual by default
 char           CHAN_0[256] = "Dev1/ao0";      // MOTOR 0
 char           CHAN_1[256] = "Dev1/ao1";      // MOTOR 1 
 char           CHAN_I[256] = "Dev1/ai0";	  // Analog input channel  
-double         setpoint = 0;
+unsigned int   setpoint = 0;
 double         Kr = 0;
 double         Ti = 0;
 double         Td = 0;
-double         T  = 0.1;                      // The sampling rate
+double         T  = 0.1;                      // The sampling rate in seconds
 int            process_running = PROCESS_STOPPED;
-int32          numRead;
-float64        sensor_data = 0; 
+int32          numRead = 1;
+float64        sensor_data = 0;
+double         command = 0; 
+float64        previous_sensor_data = 0;      // Used for input averaging (filtering)
 // ***** END REGION *****
 
 // ***** PROTOTYPES REGION *****  
@@ -65,18 +67,25 @@ int main(int argc, char *argv[])
 	SetCtrlAttribute(panelHandle,PANEL_LED_MANUAL, ATTR_CTRL_VAL, 1);
 	
 	// Set number of displayed traces
-	SetCtrlAttribute(panelHandle,PANEL_STRIPCHART, ATTR_NUM_TRACES, NUM_GRAPH_CHANNELS);
+	SetCtrlAttribute(panelHandle, PANEL_STRIPCHART, ATTR_NUM_TRACES, NUM_GRAPH_CHANNELS);
+	
+	// Enable and configure strip chart legend
+	SetCtrlAttribute(panelHandle, PANEL_STRIPCHART, ATTR_LEGEND_VISIBLE, 1);
+	SetCtrlAttribute(panelHandle, PANEL_STRIPCHART, ATTR_LEGEND_TOP, VAL_BOTTOM_ANCHOR);
+	for (i = 1; i <= NUM_GRAPH_CHANNELS; i++)
+		SetTraceAttribute (panelHandle, PANEL_STRIPCHART, i, ATTR_TRACE_LG_VISIBLE, 1);
+	SetTraceAttributeEx(panelHandle, PANEL_STRIPCHART, 1, ATTR_PLOT_LG_TEXT, "Output");
+	SetTraceAttributeEx(panelHandle, PANEL_STRIPCHART, 2, ATTR_PLOT_LG_TEXT, "Command");
+	SetTraceAttributeEx(panelHandle, PANEL_STRIPCHART, 3, ATTR_PLOT_LG_TEXT, "Reference");
 	
 	// Disable automatic controls
 	SetCtrlAttribute(panelHandle, PANEL_START, ATTR_DIMMED, 1);
 	SetCtrlAttribute(panelHandle, PANEL_STOP, ATTR_DIMMED, 1);
 
-	//NIDAQmx_NewPhysChanAOCtrl(panelHandle,PANEL_CHANNEL  ,0);  // Adauga canalele de iesire in dropdown
-	//NIDAQmx_NewPhysChanAICtrl(panelHandle,PANEL_CHANNEL_2,1);  // Adauga canalele de intrare in dropdown  
-	
 	DisplayPanel(panelHandle);
 	RunUserInterface();
 	DiscardPanel(panelHandle);
+	
 	return 0;
 }
 
@@ -152,6 +161,7 @@ int CVICALLBACK tipControl (int panel, int control, int event,
 	return 0;
 }
 
+
 int SetMotorCommand(char chan[256], float64 command)
 {
 	int         error=0;
@@ -193,6 +203,7 @@ int CVICALLBACK MotorZeroCallback (int panel, int control, int event,
 		void *callbackData, int eventData1, int eventData2)
 {
 	float64 data;
+	// Motors get the same command value when sameCommand is true   
 	int     sameCommand = 0;
 	
 	switch (event)
@@ -222,6 +233,7 @@ int CVICALLBACK MotorOneCallback (int panel, int control, int event,
 		void *callbackData, int eventData1, int eventData2)
 {
 	float64 data;
+	// Motors get the same command value when sameCommand is true
 	int     sameCommand = 0;
 	
 	switch (event)
@@ -311,13 +323,17 @@ int CVICALLBACK TimerCallback (int panel, int control, int event,
 {
 	int32       error=0;
 	float64     min = 0, max = 5;
+	// Number of input channels
 	uInt32      numChannels = 1;   
 	TaskHandle  taskHandle=0;  
 	uInt32      sampsPerChan = 1;
 	char        errBuff[2048]={'\0'};
 	float64     plotData[NUM_GRAPH_CHANNELS];
-	double      command = 0;
-
+	// Setpoint is transformed from percents to sensor value
+	double      transformedSetpoint = 0;
+	double      sensorRange = MAX_SENSOR_VALUE - MIN_SENSOR_VALUE;
+	double 		mean_value = 0;
+	
 	switch (event)
 	{
 		case EVENT_TIMER_TICK:
@@ -327,7 +343,6 @@ int CVICALLBACK TimerCallback (int panel, int control, int event,
 			// DAQmx Configure Code
 			DAQmxErrChk (DAQmxCreateTask("",&taskHandle));
 			DAQmxErrChk (DAQmxCreateAIVoltageChan(taskHandle,CHAN_I,"",DAQmx_Val_Cfg_Default,min,max,DAQmx_Val_Volts,NULL));
-			//DAQmxErrChk (DAQmxGetTaskAttribute(taskHandle,DAQmx_Task_NumChans,&numChannels));
 		
 			// DAQmx Start Code
 			DAQmxErrChk (DAQmxStartTask(taskHandle));
@@ -335,26 +350,35 @@ int CVICALLBACK TimerCallback (int panel, int control, int event,
 			// DAQmx Read Code
 			DAQmxErrChk (DAQmxReadAnalogF64(taskHandle,-1,10.0,DAQmx_Val_GroupByChannel,&sensor_data,sampsPerChan*numChannels,&numRead,NULL));
 			
+			// Sensor filtering
+			mean_value = (sensor_data + previous_sensor_data) / 2; 
+			
 			if(process_running)
 			{
 				// Here goes PID control logic
+				transformedSetpoint = ((setpoint*sensorRange) / 100) - sensorRange; 
+				command = pid_incremental(Kr, Ti, Td, T, transformedSetpoint, mean_value, MIN_MOTOR_COMMAND, MAX_MOTOR_COMMAND); 
 				
-				command = pid_incremental(Kr, Ti, Td, T, setpoint, sensor_data, 1, 1.7); 
-				//printf("\nSensor data = %f, command = %f", sensor_data, command); 
+				// Apply computed command to both motors
 				SetMotorCommand(CHAN_0, command);
 				SetMotorCommand(CHAN_1, command);
 			}
 			
-			plotData[0] = sensor_data;
-		    plotData[1] = command;
-		    plotData[2] = setpoint;
+			previous_sensor_data = sensor_data;
+			
+			// Display the filtered data
+			sensor_data = mean_value;
+			
+			/* Conversion to percents */
+			// sensor_data value should be in [-0.85...0.0]
+			plotData[0] = (sensor_data + sensorRange)*100 / sensorRange;
+		    plotData[1] = command*100 / COMMAND_RANGE;
+		    plotData[2] = setpoint;  // Already in percents
 			PlotStripChart(panelHandle,PANEL_STRIPCHART,plotData,numRead*NUM_GRAPH_CHANNELS,0,0,VAL_DOUBLE); 
 		break;
 	}
-	
 
 Error:
-#if 1
 	//SetWaitCursor(0);
 	if( DAQmxFailed(error) )
 		DAQmxGetExtendedErrorInfo(errBuff,2048);
@@ -365,11 +389,9 @@ Error:
 	}
 	if( DAQmxFailed(error) )
 		MessagePopup("DAQmx Error",errBuff);
-#endif
 	
 	return 0;
 }
-
 
 /*****************************************************
  * This callback handles the same command checkbox.
@@ -398,3 +420,53 @@ int CVICALLBACK SameCommandCHECKED (int panel, int control, int event,
 	}
 	return 0;
 }
+
+/*****************************************************
+ * This callback sets the reference value when it is
+ * changed from the interface while the process is
+ * running
+ ****************************************************/
+int CVICALLBACK ReferenceChanged (int panel, int control, int event,
+		void *callbackData, int eventData1, int eventData2)
+{
+	switch (event)
+	{
+		case EVENT_COMMIT:
+			if(process_running)
+			{
+				GetCtrlVal(panel,PANEL_SET_POINT_VALUE, &setpoint);  
+			}
+		break;
+	}
+	return 0;
+}
+
+/********************************************************
+ * This callback updates the REF, U, Y labels whith their 
+ * corresponding values in percents every 1 second
+ ********************************************************/
+int CVICALLBACK UpdateLabelsTimer (int panel, int control, int event,
+		void *callbackData, int eventData1, int eventData2)
+{
+	char   buffer[20] = "";
+	double sensorRange = MAX_SENSOR_VALUE - MIN_SENSOR_VALUE;
+	
+	switch (event)
+	{
+		case EVENT_TIMER_TICK:
+			sprintf(buffer, "%d", setpoint);
+			SetCtrlAttribute(panelHandle, PANEL_REF_VAL, ATTR_CTRL_VAL, buffer);  
+			
+			sprintf(buffer, "%.2f", command*100 / COMMAND_RANGE);  
+			SetCtrlAttribute(panelHandle, PANEL_U_VAL, ATTR_CTRL_VAL, buffer);
+			
+			sprintf(buffer, "%.2f", (sensor_data + sensorRange)*100 / sensorRange); 
+			SetCtrlAttribute(panelHandle, PANEL_Y_VAL, ATTR_CTRL_VAL, buffer); 
+			break;
+	}
+	return 0;
+}
+
+
+
+
